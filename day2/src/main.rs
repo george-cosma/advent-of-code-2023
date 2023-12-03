@@ -1,14 +1,13 @@
 use std::{
     env,
-    error::Error,
     io::{BufRead, BufReader},
-    str::Chars,
+    str::Chars, collections::HashMap,
 };
 
-use anyhow::{anyhow, bail};
-use itertools::{Itertools, MultiPeek};
+use anyhow::bail;
+use itertools::Itertools;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 enum CubeColor {
     Red,
     Green,
@@ -180,8 +179,8 @@ struct Game {
 
 impl Game {
     fn valid(&self) -> bool {
-        for cubes in &self.showings {
-            for cube in cubes {
+        for showing in &self.showings {
+            for cube in showing {
                 if !cube.valid() {
                     return false;
                 }
@@ -189,6 +188,23 @@ impl Game {
         }
 
         true
+    }
+
+    fn power(&self) -> u32 {
+        let mut max_map = HashMap::new();
+        
+        for showing in &self.showings {
+            for cube in showing {
+                max_map.entry(cube.color).and_modify(|max_val| {
+                    if *max_val < cube.amount {
+                        *max_val = cube.amount
+                    }
+                }).or_insert(cube.amount);
+            }
+        }
+
+        
+        max_map.iter().fold(1, |acc, (_color, amount)| acc * amount)
     }
 }
 
@@ -255,6 +271,7 @@ fn main() -> Result<(), anyhow::Error> {
     let mut buffer = String::new();
 
     let mut sum = 0;
+    let mut sum_power = 0;
 
     loop {
         match reader.read_line(&mut buffer)? {
@@ -269,6 +286,8 @@ fn main() -> Result<(), anyhow::Error> {
                     println!("Game is valid");
                     sum += game.game_number;
                 }
+
+                sum_power += game.power();
             }
         }
 
@@ -276,6 +295,7 @@ fn main() -> Result<(), anyhow::Error> {
     }
 
     println!("Sum of valid games: {sum}");
+    println!("Sum of powers: {sum_power}");
 
     Ok(())
 }
