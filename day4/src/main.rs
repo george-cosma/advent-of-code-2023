@@ -151,6 +151,18 @@ struct Card {
 }
 
 impl Card {
+    fn pairs(&self) -> u32 {
+        let mut pairs = 0;
+
+        for num in &self.card_nums {
+            if self.winning_nums.contains(num) {
+                pairs += 1;
+            }
+        }
+
+        pairs
+    }
+
     fn points(&self) -> u32 {
         let mut points = 0;
 
@@ -223,7 +235,9 @@ fn main() -> Result<(), Report> {
 
     let mut buffer = String::new();
 
-    let mut sum = 0;
+    let mut sum_part1 = 0;
+
+    let mut card_copies = HashMap::new();
 
     loop {
         match reader.read_line(&mut buffer)? {
@@ -232,16 +246,33 @@ fn main() -> Result<(), Report> {
                 let tokens = tokenize_line(&buffer)?;
                 let card = parse_card(tokens.into_iter())?;
 
-                println!("Parsed card: {card:?}");
+                // add a copy of this card
+                card_copies.entry(card.card_id).and_modify(|e| *e += 1).or_insert(1);
+                
+                // Copies of this card:
+                let copies = *card_copies.get(&card.card_id).unwrap();
+                
+                // add as many copies of subsequent card as there are copies of this card 
+                for i in card.card_id + 1..=card.card_id + card.pairs() {
+                    card_copies.entry(i).and_modify(|e| *e += copies).or_insert(copies);
+                }
 
-                sum += card.points();
+                // dbg!(&card);
+                // dbg!(&card_points);
+                // dbg!(&card_copies);
+
+                // println!("Parsed card: {card:?}");
+                sum_part1 += card.points();
             }
         }
 
         buffer.clear();
     }
 
-    println!("Sum of card points: {sum}");
+
+
+    println!("Part1 Sum of card points: {sum_part1}");
+    println!("Part2 Total copies: {}", card_copies.iter().map(|(_id, copies)| copies).sum::<u32>());
 
     Ok(())
 }
